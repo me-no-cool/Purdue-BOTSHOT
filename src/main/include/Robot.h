@@ -9,13 +9,12 @@
 
 #include <string>
 
-#include <IterativeRobot.h>
-#include <SmartDashboard/SendableChooser.h>
-#include "WPILib.h"
-#include "CameraServer.h"
+#include <frc/IterativeRobot.h>
+//#include <frc/smartDashboard/SendableChooser.h>
+#include "frc/WPILib.h"
 #include "ctre/Phoenix.h"
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/core/core.hpp>
+
+
 
 class KFFlywheelControl;
 class ScrewDriveControl;
@@ -25,25 +24,24 @@ class Robot : public frc::TimedRobot {
  public:
   void RobotInit() override;
   void RobotPeriodic() override;
-  void AutonomousInit() override;
-  void AutonomousPeriodic() override;
+  //void AutonomousInit() override;
+  //void AutonomousPeriodic() override;
   void TeleopInit() override;
   void TeleopPeriodic() override;
   void TestPeriodic() override;
 
-  void SkywalkerVisionThread();
 
   void GetAndSetUserDriveSpeeds();
   void ManageLaunchControlMode();
   void ManageAimDistanceMacro();
-  void ManuallyManageFlywheelAndScrewdrive();
   float GetUserFlywheelSpeed(float currentTargetSpeed);
   void OutputDebugFlywheelSpeeds(float targetSpeed);
-  void SetUseDistanceControl(bool useDistanceControl);
+
+  double bias = 0.0;
 
   float targetSpeed = 0;
   float targetScrewPosition = 5;
-  float distanceToHoop = 12;
+  float distanceToHoop = 6;
   double crosshairProportionUpFeed = 0.5;
 
   int hold = 0;
@@ -95,6 +93,7 @@ class KFFlywheelControl
     KFFlywheelControl(Robot* robot) {this->robot = robot; }
     void Run();
     void Update();
+    void Seek(double targetSpeed);
     void Terminate();
 
     double targetSpeed;
@@ -102,7 +101,8 @@ class KFFlywheelControl
   private:
     Robot* robot;
     State currentState = NEW;
-    double slowedSetpoint = 0;
+    double slowedSetpointTop = 0;
+    double slowedSetpointBottom = 0;
     double kf = 0.03;
     double kp = 0.02;
     double backspinConst = 0.9;
@@ -166,36 +166,42 @@ class AimDistanceMacro
     void SetDistance(double distance);
     double calculateScrewPosition(double distance);
     double calculateFlywheelSpeed(double distance);
-    static double calculateDistanceToHoop(double crosshairProportionUpFeed);
+    //static double calculateDistanceToHoop(double crosshairProportionUpFeed);
 
     KFFlywheelControl* flywheelControl;
     ScrewDriveControl* screwDriveControl;
+    double targetDistance = 0;
   private:
     Robot* robot;
     State currentState = NEW;
-    double targetDistance = 0;
+    
     double targetScrewPosition;
     double targetFlywheelSpeed;
     double screwThreshold = 0.1; //in
     double flywheelSpeedThreshold = 1.5; // rps
 
     struct distanceLookupTableEntry {
-      double distance; // ft
-      double screwPosition; // in
+      double distance; // ft      
       double flywheelSpeed; // rps
+      double screwPosition; // in
     };
     std::vector< distanceLookupTableEntry> distanceLookupTable =
     {
       // Note: Entries should be sorted by distance,
       // and there should be NO DUPLICATES
-      { 0, 3, 15},
-      { 3, 6.875, 15},
-      { 6, 11.125, 15},
-      { 9, 13.125, 16},
-      { 12, 18, 16},
-      { 15, 15.375, 19},
-      { 18, 19.5, 19},
-      { 21, 20, 20}
+      { 0.63, 12.51, 2.74},
+      { 1.62, 12.51, 4.52},
+      { 3.15, 12.51, 6.59},
+      { 4.61, 12.51, 9.58},
+      { 6.1, 12.98, 10.82},
+      { 7.3, 13.36, 11.25},
+      { 8.9, 13.74, 11.5},
+      { 10.19, 14.26, 11.81},
+      { 11.54, 14.64, 12.05},
+      { 13.2, 15.33, 12.53},
+      { 14.55, 15.66, 12.81},
+      { 15.91, 16.04, 13.14},
+      { 21.9, 18.78, 17.39}
     };
 
 };
